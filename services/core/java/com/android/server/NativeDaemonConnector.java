@@ -75,7 +75,7 @@ final class NativeDaemonConnector implements Runnable, Handler.Callback, Watchdo
     private AtomicInteger mSequenceNumber;
 
     private static final long DEFAULT_TIMEOUT = 1 * 60 * 1000; /* 1 minute */
-    private static final long WARN_EXECUTE_DELAY_MS = 500; /* .5 sec */
+    private static final long WARN_EXECUTE_DELAY_MS = 5500; /* 5.5 sec */
 
     /** Lock held whenever communicating with native daemon. */
     private final Object mDaemonLock = new Object();
@@ -133,18 +133,22 @@ final class NativeDaemonConnector implements Runnable, Handler.Callback, Watchdo
     public void run() {
         mCallbackHandler = new Handler(mLooper, this);
 
+        long startTime = 0;
         while (true) {
             try {
                 listenToSocket();
             } catch (Exception e) {
-                loge("Error in NativeDaemonConnector: " + e);
-                String shutdownAct = SystemProperties.get(
-                        ShutdownThread.SHUTDOWN_ACTION_PROPERTY, "");
-                if (shutdownAct != null && shutdownAct.length() > 0) {
-                    // The device is in middle of shutdown.
-                    break;
+                long currentTime = SystemClock.uptimeMillis();
+                long elapsedTime = currentTime - startTime;
+
+                if (elapsedTime >= 5000 && startTime > 0) {
+                    startTime = 0;
                 }
-                SystemClock.sleep(5000);
+
+                if (startTime == 0)
+                    startTime = currentTime;
+
+                SystemClock.sleep(100);
             }
         }
     }
@@ -275,7 +279,6 @@ final class NativeDaemonConnector implements Runnable, Handler.Callback, Watchdo
                 }
             }
         } catch (IOException ex) {
-            loge("Communications error: " + ex);
             throw ex;
         } finally {
             synchronized (mDaemonLock) {
