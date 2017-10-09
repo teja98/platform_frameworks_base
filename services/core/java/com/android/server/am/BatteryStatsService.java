@@ -1450,7 +1450,6 @@ public final class BatteryStatsService extends IBatteryStats.Stub
     void updateExternalStatsSync(final String reason, int updateFlags) {
         SynchronousResultReceiver wifiReceiver = null;
         SynchronousResultReceiver bluetoothReceiver = null;
-        SynchronousResultReceiver modemReceiver = null;
 
         synchronized (mExternalStatsLock) {
             if (mContext == null) {
@@ -1486,11 +1485,6 @@ public final class BatteryStatsService extends IBatteryStats.Stub
                 if (mTelephony == null) {
                     mTelephony = TelephonyManager.from(mContext);
                 }
-
-                if (mTelephony != null) {
-                    modemReceiver = new SynchronousResultReceiver();
-                    mTelephony.requestModemActivityInfo(modemReceiver);
-                }
             }
 
             WifiActivityEnergyInfo wifiInfo = null;
@@ -1506,12 +1500,6 @@ public final class BatteryStatsService extends IBatteryStats.Stub
                 bluetoothInfo = awaitControllerInfo(bluetoothReceiver);
             } catch (TimeoutException e) {
                 Slog.w(TAG, "Timeout reading bt stats");
-            }
-
-            try {
-                modemInfo = awaitControllerInfo(modemReceiver);
-            } catch (TimeoutException e) {
-                Slog.w(TAG, "Timeout reading modem stats");
             }
 
             synchronized (mStats) {
